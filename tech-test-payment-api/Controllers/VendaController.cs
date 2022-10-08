@@ -1,83 +1,104 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using tech_test_payment_api.Data;
+using tech_test_payment_api.Models;
 
 namespace tech_test_payment_api.Controllers
 {
-    public class VendaController : Controller
+    [ApiController]
+    [Route("[controller]")]
+    public class VendaController : ControllerBase
     {
-        // GET: VendaController
-        public ActionResult Index()
+        private readonly DataContext _context;
+
+        public VendaController(DataContext context)
         {
-            return View();
+            _context = context;
         }
 
-        // GET: VendaController/Details/5
-        public ActionResult Details(int id)
+
+        // GET: lista todos
+        [HttpGet("ObterTodos")]
+        public List<Vendedor> ObterTodos()
         {
-            return View();
+            // Buscar todas as vendas no banco utilizando o EF
+            return _context.Vendedores.ToList();
+           
         }
 
-        // GET: VendaController/Create
-        public ActionResult Create()
+
+        // GET: Buscar o Id no banco utilizando o EF
+        [HttpGet("{id}")]
+        public IActionResult ObterPorId(int id)
         {
-            return View();
+            
+            //  Validar o tipo de retorno. Se não encontrar a venda, retornar NotFound,
+            // caso contrário retornar OK com a venda encontrada
+            var venda = _context.Vendedores.Find(id);
+
+            if (venda == null)
+                return NotFound();
+            return Ok(venda);
+            
         }
 
-        // POST: VendaController/Create
+        // POST: criar Registrar venda
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
+        public IActionResult Criar(Vendedor venda)
         {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
+            if (venda.Data == DateTime.MinValue)
+                return BadRequest(new { Erro = "A data da venda não pode ser vazia" });
+
+            // Adicionar a venda recebida no EF e salvar as mudanças (save changes)
+            _context.Add(venda);
+            _context.SaveChanges();
+            
+            return CreatedAtAction(nameof(ObterPorId), new { id = venda.Id }, venda);
         }
 
-        // GET: VendaController/Edit/5
-        public ActionResult Edit(int id)
+
+        //UPDATE: Atualizar venda
+        [HttpPut("{id}")]
+        public IActionResult Atualizar(int id, Vendedor venda)
         {
-            return View();
+            var vendaBanco = _context.Vendedores.Find(id);
+
+            if (vendaBanco == null)
+                return NotFound();
+
+            if (venda.Data == DateTime.MinValue)
+                return BadRequest(new { Erro = "A data da venda não pode ser vazia" });
+
+
+            //  Atualizar as informações da variável vendaBanco com a venda recebida via parâmetro
+            //  Atualizar a variável vendaBanco no EF e salvar as mudanças (save changes)
+
+            //vendaBanco.Nome = venda.Nome;
+           // vendaBanco.Email = venda.Email;
+            vendaBanco.Status = venda.Status;
+
+            _context.Update(vendaBanco);
+            _context.SaveChanges();
+            
+            return Ok(vendaBanco);
         }
 
-        // POST: VendaController/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
 
-        // GET: VendaController/Delete/5
-        public ActionResult Delete(int id)
+        // Delete: 
+        [HttpDelete("{id}")]
+        public IActionResult Deletar(int id)
         {
-            return View();
-        }
+            var vendaBanco = _context.Vendedores.Find(id);
 
-        // POST: VendaController/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
+            if (vendaBanco == null)
+                return NotFound();
+
+            //  Remover a venda encontrada através do EF e salvar as mudanças (save changes)
+            _context.Vendedores.Remove(vendaBanco);
+            _context.SaveChanges(true);
+            
+            return NoContent();
         }
     }
+    
 }
